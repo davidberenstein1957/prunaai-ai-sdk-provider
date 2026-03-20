@@ -93,7 +93,7 @@ const { image } = await generateImage({
   providerOptions: {
     pimage: {
       lora_weights: 'huggingface.co/your-org/your-lora',
-      lora_scale: 0.8,      // −1 to 3, default 0.5
+      lora_scale: 0.8,      // −1 to 3, default 1
       hf_api_token: '...',  // only needed for private HF repos
     },
   },
@@ -105,6 +105,11 @@ const { image } = await generateImage({
 ## Image editing — `p-image-edit`
 
 Input images are passed via `prompt.images`. They must be URL strings or raw buffers (`Uint8Array` / `ArrayBuffer`) — the provider automatically uploads raw buffers to Pruna before submitting the request.
+
+> **Note:** The `prompt` parameter normally expects a string, but for edit models you pass an object with `{ text, images }`. This requires a type assertion in strict TypeScript codebases:
+> ```ts
+> prompt: { text: '...', images: [...] } as any
+> ```
 
 ```ts
 import { generateImage } from 'ai';
@@ -118,7 +123,7 @@ const { image } = await generateImage({
   prompt: {
     text: 'Transform into a watercolour painting with warm tones',
     images: [sourceImage], // 1–5 images; raw buffers are uploaded automatically
-  },
+  } as any,
 });
 
 fs.writeFileSync('edited.png', image.uint8Array);
@@ -154,11 +159,11 @@ const { image } = await generateImage({
   prompt: {
     text: 'Apply my custom style to image 1',
     images: [sourceImage],
-  },
+  } as any,
   providerOptions: {
     pimage: {
       lora_weights: 'huggingface.co/your-org/your-lora',
-      lora_scale: 1.0,     // default 1 for edit-lora
+      lora_scale: 1.0,     // −1 to 3, default 1
       hf_api_token: '...',
     },
   },
@@ -191,7 +196,7 @@ const { image } = await generateImage({
 | `edit_aspect_ratio` | editing | string | `'match_input_image'` | Output aspect ratio for edit models. |
 | `turbo` | editing | boolean | `true` | Faster generation. Disable for complex editing tasks. |
 | `lora_weights` | lora | string | — | HuggingFace URL for LoRA weights. Required for lora models. |
-| `lora_scale` | lora | number | `0.5` / `1.0` | LoRA influence scale (−1 to 3). |
+| `lora_scale` | lora | number | `1` | LoRA influence scale (−1 to 3). Only sent if explicitly provided. |
 | `hf_api_token` | lora | string | — | HuggingFace token for private LoRA repos. |
 | `disable_safety_checker` | all | boolean | `false` | Disable the safety filter. |
 
@@ -208,7 +213,16 @@ Top-level `generateImage()` parameters also supported:
 
 ## API reference
 
-Full API documentation: [docs.api.pruna.ai](https://docs.api.pruna.ai)
+This provider implements the [Pruna AI API v0.3.0](https://docs.api.pruna.ai).
+
+**Supported endpoints:**
+- `POST /v1/predictions` — Submit image generation or editing predictions
+- `GET /v1/predictions/status/{id}` — Poll async prediction status
+- `POST /v1/files` — Upload raw image buffers for editing
+
+For complete API documentation, authentication, rate limits, and advanced features, see:
+- [Pruna API Docs](https://docs.api.pruna.ai)
+- [Quickstart Guide](https://docs.api.pruna.ai/guides/quickstart)
 
 ---
 
